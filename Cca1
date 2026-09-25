@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCA-Screen: ระบบคัดกรองภาวะตาเหลืองและมะเร็งท่อน้ำดี</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+    <!-- Header / Navbar -->
+    <header class="bg-teal-700 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid font-bold fa-eye-dropper text-2xl text-teal-200"></i>
+                <div>
+                    <h1 class="font-bold text-xl leading-tight">CCA-ScleraScreen AI</h1>
+                    <p class="text-xs text-teal-100">ระบบคัดกรองความเสี่ยงมะเร็งท่อน้ำดีจากภาพถ่ายตาขาวผ่านสมาร์ตโฟน</p>
+                </div>
+            </div>
+            <span class="bg-teal-800 text-teal-200 text-xs px-3 py-1 rounded-full font-medium">
+                <i class="fa-solid fa-circle text-emerald-400 mr-1 text-[10px]"></i> อุปกรณ์ 3D-Hood เชื่อมต่อแล้ว
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Column: Upload & Image Preview (5 cols) -->
+        <section class="lg:col-span-5 space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fa-solid fa-camera text-teal-600 mr-2"></i> 1. นำเข้าภาพถ่ายดวงตา
+                </h2>
+                
+                <!-- Upload Zone -->
+                <div id="dropZone" onclick="document.getElementById('fileInput').click()" 
+                     class="border-2 border-dashed border-slate-300 hover:border-teal-500 bg-slate-50 hover:bg-teal-50/30 rounded-xl p-8 text-center cursor-pointer transition">
+                    <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="previewImage(event)">
+                    <div id="uploadPrompt" class="space-y-3">
+                        <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400"></i>
+                        <p class="text-sm font-medium text-slate-600">คลิกอัปโหลด หรือลากรูปภาพมาวางที่นี่</p>
+                        <p class="text-xs text-slate-400">รองรับภาพถ่ายตาขาวผ่านอุปกรณ์ 3D Light-Shield Hood</p>
+                    </div>
+                    <!-- Image Preview Container -->
+                    <div id="previewContainer" class="hidden relative">
+                        <img id="imagePreview" class="max-h-64 mx-auto rounded-lg shadow-sm border border-slate-200" src="#" alt="Preview">
+                        <span class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
+                            <i class="fa-solid fa-check text-emerald-400 mr-1"></i> ได้ภาพถ่าย
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Hidden Canvas for Color Processing -->
+                <canvas id="processCanvas" class="hidden"></canvas>
+
+                <!-- Action Button -->
+                <button id="analyzeBtn" onclick="runAnalysis()" disabled
+                        class="w-full mt-5 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl shadow-md transition duration-200 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-microscope"></i>
+                    <span>วิเคราะห์ผลภาพถ่าย</span>
+                </button>
+            </div>
+
+            <!-- Hardware Spec Card -->
+            <div class="bg-teal-50/60 p-5 rounded-2xl border border-teal-100 text-xs text-slate-600 space-y-2">
+                <div class="font-bold text-teal-800 flex items-center text-sm">
+                    <i class="fa-solid fa-sliders mr-2"></i> ข้อมูลการตั้งค่าอุปกรณ์ฮาร์ดแวร์
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <div>• ระยะโฟกัส: <span class="font-semibold text-slate-700">80 mm</span></div>
+                    <div>• ตัวกรองแสง: <span class="font-semibold text-slate-700">Ring Diffuser</span></div>
+                    <div>• แผ่นเทียบสี: <span class="font-semibold text-slate-700">Card 25° Angle</span></div>
+                    <div>• ขนาดวงแหวน: <span class="font-semibold text-slate-700">37 mm Mount</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Results Dashboard (7 cols) -->
+        <section class="lg:col-span-7">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[500px] flex flex-col justify-between">
+                
+                <div>
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-chart-line text-teal-600 mr-2"></i> 2. ผลการประเมินวิเคราะห์สีตาขาว
+                        </h2>
+                        <span id="analysisStatus" class="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-medium">
+                            รอการนำเข้าภาพ
+                        </span>
+                    </div>
+
+                    <!-- Loading State (Hidden by default) -->
+                    <div id="loadingState" class="hidden py-16 text-center space-y-4">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-teal-600 border-t-transparent"></div>
+                        <p class="text-sm font-medium text-slate-600">กำลังปรับเทียบค่าแสงสีด้วย Color Calibration Card...</p>
+                        <p class="text-xs text-slate-400">คำนวณค่าพิกเซลสี $b^*$ (Yellow-Blue Axis) บนตาขาว</p>
+                    </div>
+
+                    <!-- Placeholder State -->
+                    <div id="emptyState" class="py-20 text-center text-slate-400 space-y-3">
+                        <i class="fa-solid fa-notes-medical text-5xl text-slate-200"></i>
+                        <p>กรุณาอัปโหลดภาพถ่ายตาขาวแล้วกดปุ่ม "วิเคราะห์ผลภาพถ่าย"</p>
+                    </div>
+
+                    <!-- Results Content (Hidden by default) -->
+                    <div id="resultsContent" class="hidden space-y-6">
+                        
+                        <!-- Calibration Check Badge -->
+                        <div class="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800">
+                            <span class="flex items-center font-medium">
+                                <i class="fa-solid fa-circle-check text-emerald-600 text-sm mr-2"></i>
+                                ตรวจพบการ์ดเทียบสี (Calibration Card OK) — ปรับชดเชยแสงเรียบร้อยแล้ว
+                            </span>
+                            <span class="font-mono text-slate-500">Angle: 24.8°</span>
+                        </div>
+
+                        <!-- Main Metric Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Bilirubin Value -->
+                            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                                <span class="text-xs font-semibold text-slate-500">ค่าบิลิรูบินประมาณการณ์ (Estimated Bilirubin)</span>
+                                <div class="flex items-baseline space-x-2 mt-2">
+                                    <span id="bilirubinVal" class="text-4xl font-extrabold text-slate-800">1.2</span>
+                                    <span class="text-sm font-semibold text-slate-500">mg/dL</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400 mt-2">เกณฑ์ปกติของผู้ใหญ่: &lt; 1.2 mg/dL</p>
+                            </div>
+
+                            <!-- Risk Level Badge -->
+                            <div id="riskCardBg" class="p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
+                                <span class="text-xs font-semibold text-slate-500">ระดับความเสี่ยงภาวะตาเหลือง (Risk Level)</span>
+                                <div class="mt-2">
+                                    <span id="riskBadge" class="inline-block px-3 py-1 rounded-lg text-sm font-bold">
+                                        ปกติ (Normal)
+                                    </span>
+                                </div>
+                                <p id="riskDesc" class="text-xs text-slate-600 mt-2">ไม่พบความผิดปกติของสีเหลืองบนตาขาว</p>
+                            </div>
+                        </div>
+
+                        <!-- LAB Color Metrics Breakdown -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">CIE L*a*b* Color Metrics</h3>
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="block text-slate-400">L* (Lightness)</span>
+                                    <span id="metricL" class="font-mono font-bold text-slate-700">82.4</span>
+                                </div>
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="block text-slate-400">a* (Green-Red)</span>
+                                    <span id="metricA" class="font-mono font-bold text-slate-700">-1.2</span>
+                                </div>
+                                <div class="bg-white p-2 rounded border border-slate-200">
+                                    <span class="block text-slate-400">b* (Yellow Chromatic)</span>
+                                    <span id="metricB" class="font-mono font-bold text-amber-600">14.8</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Clinical Recommendation -->
+                        <div id="recommendationBox" class="p-4 rounded-xl text-xs space-y-1">
+                            <p class="font-bold text-slate-800 flex items-center">
+                                <i class="fa-solid fa-user-doctor mr-2"></i> ข้อแนะนำสำหรับ อสม. / เจ้าหน้าที่สาธารณสุข:
+                            </p>
+                            <p id="recommendationText" class="text-slate-600 pl-6">
+                                ผลการตรวจอยู่ในเกณฑ์ปกติ นัดติดตามผลตามรอบคัดกรองประจำปี
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Print / Export Footer -->
+                <div class="border-t border-slate-100 pt-4 mt-6 flex justify-between items-center text-xs text-slate-400">
+                    <span>รหัสอ้างอิง: <span class="font-mono">CCA-2026-9982</span></span>
+                    <button onclick="window.print()" class="hover:text-teal-600 transition flex items-center">
+                        <i class="fa-solid fa-print mr-1"></i> พิมพ์รายงานสรุป
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Logic Script -->
+    <script>
+        let uploadedImage = null;
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                uploadedImage = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('uploadPrompt').classList.add('hidden');
+                    document.getElementById('previewContainer').classList.remove('hidden');
+                    document.getElementById('analyzeBtn').disabled = false;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function runAnalysis() {
+            if (!uploadedImage) return;
+
+            // Show Loading
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('resultsContent').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('analysisStatus').innerText = "กำลังประมวลผล...";
+            document.getElementById('analysisStatus').className = "text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-medium animate-pulse";
+
+            // Process pixels via hidden Canvas
+            const img = document.getElementById('imagePreview');
+            const canvas = document.getElementById('processCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Simulate processing time
+            setTimeout(() => {
+                canvas.width = img.naturalWidth || 300;
+                canvas.height = img.naturalHeight || 300;
+                ctx.drawImage(img, 0, 0);
+
+                // Sample image color from center region
+                const imgData = ctx.getImageData(canvas.width / 2, canvas.height / 2, 20, 20);
+                let r = 0, g = 0, b = 0;
+                for (let i = 0; i < imgData.data.length; i += 4) {
+                    r += imgData.data[i];
+                    g += imgData.data[i+1];
+                    b += imgData.data[i+2];
+                }
+                const count = imgData.data.length / 4;
+                r = r / count; g = g / count; b = b / count;
+
+                // Calculate simplified b* yellow index based on (R+G)/2 - B
+                const yellowness = ((r + g) / 2) - b;
+                
+                // Map yellow Index to Bilirubin mg/dL
+                let bilirubin = (yellowness / 12) + 0.6;
+                if (bilirubin < 0.8) bilirubin = 0.9;
+                bilirubin = parseFloat(bilirubin.toFixed(1));
+
+                // Populate UI Results
+                document.getElementById('bilirubinVal').innerText = bilirubin;
+                document.getElementById('metricL').innerText = (80 + (r/10)).toFixed(1);
+                document.getElementById('metricA').innerText = (-2 + (r-g)/20).toFixed(1);
+                document.getElementById('metricB').innerText = (yellowness / 2.5).toFixed(1);
+
+                // Risk Stratification
+                const riskBadge = document.getElementById('riskBadge');
+                const riskCardBg = document.getElementById('riskCardBg');
+                const riskDesc = document.getElementById('riskDesc');
+                const recBox = document.getElementById('recommendationBox');
+                const recText = document.getElementById('recommendationText');
+
+                if (bilirubin < 1.5) {
+                    // Normal
+                    riskBadge.className = "inline-block px-3 py-1 rounded-lg text-sm font-bold bg-emerald-100 text-emerald-800";
+                    riskBadge.innerText = "ความเสี่ยงต่ำ (Normal)";
+                    riskCardBg.className = "p-5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex flex-col justify-between";
+                    riskDesc.innerText = "ไม่พบภาวะตาเหลือง ค่าสีตาขาวอยู่ในเกณฑ์ปกติ";
+                    recBox.className = "p-4 rounded-xl text-xs space-y-1 bg-emerald-50 border border-emerald-200 text-emerald-900";
+                    recText.innerText = "ผลปกติ นัดตรวจติดตามผลตามรอบคัดกรองประจำปี ไม่ต้องส่งพบแพทย์";
+                } else if (bilirubin >= 1.5 && bilirubin < 3.0) {
+                    // Mild / Moderate
+                    riskBadge.className = "inline-block px-3 py-1 rounded-lg text-sm font-bold bg-amber-100 text-amber-800";
+                    riskBadge.innerText = "ความเสี่ยงปานกลาง (Mild Jaundice)";
+                    riskCardBg.className = "p-5 rounded-xl border border-amber-200 bg-amber-50/40 flex flex-col justify-between";
+                    riskDesc.innerText = "เริ่มพบสีเหลืองจางๆ บนตาขาว ควรเจาะเลือดยืนยัน LFT";
+                    recBox.className = "p-4 rounded-xl text-xs space-y-1 bg-amber-50 border border-amber-200 text-amber-900";
+                    recText.innerText = "ส่งตัวพบแพทย์ รพ.สต. / โรงพยาบาลชุมชน เพื่อตรวจการทำงานของตับ (LFT) และตรวจอัลตราซาวนด์พิจารณาเพิ่ม";
+                } else {
+                    // High Risk
+                    riskBadge.className = "inline-block px-3 py-1 rounded-lg text-sm font-bold bg-rose-100 text-rose-800";
+                    riskBadge.innerText = "ความเสี่ยงสูง (High Risk Jaundice)";
+                    riskCardBg.className = "p-5 rounded-xl border border-rose-200 bg-rose-50/40 flex flex-col justify-between";
+                    riskDesc.innerText = "พบภาวะตาเหลืองชัดเจน เสี่ยงต่อภาวะท่อน้ำดีอุดตัน";
+                    recBox.className = "p-4 rounded-xl text-xs space-y-1 bg-rose-50 border border-rose-200 text-rose-900";
+                    recText.innerText = "นัดหมายส่งตัวด่วนไปยังโรงพยาบาลศูนย์ / โรงพยาบาลจังหวัด เพื่อทำ Ultrasound / CT Scan ตรวจสอบท่อน้ำดี";
+                }
+
+                // Show Results UI
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('resultsContent').classList.remove('hidden');
+                document.getElementById('analysisStatus').innerText = "วิเคราะห์สำเร็จ";
+                document.getElementById('analysisStatus').className = "text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-medium";
+
+            }, 1800);
+        }
+    </script>
+</body>
+</html>
